@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f172a" />
+<title>Life Tracker</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <h1 id="header-title">Dashboard</h1>
+  <button id="settings-btn" class="icon-btn" aria-label="Settings">⚙️</button>
+</header>
+
+<main id="content"></main>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-tab="dashboard"><span>🏠</span><small>Home</small></button>
+  <button class="nav-btn" data-tab="fitness"><span>💪</span><small>Fitness</small></button>
+  <button class="nav-btn" data-tab="health"><span>❤️</span><small>Health</small></button>
+  <button class="nav-btn" data-tab="money"><span>💰</span><small>Money</small></button>
+  <button class="nav-btn" data-tab="time"><span>⏱️</span><small>Time</small></button>
+</nav>
+
+<div id="settings-modal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Settings</h2>
+    <p class="muted">Paste the Web App URL and secret token from your Apps Script deployment.</p>
+    <label>Web App URL
+      <input id="cfg-url" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+    </label>
+    <label>Secret Token
+      <input id="cfg-token" type="text" placeholder="your secret token" />
+    </label>
+    <div class="modal-actions">
+      <button id="cfg-cancel" class="btn secondary">Cancel</button>
+      <button id="cfg-save" class="btn primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="app.js"></script>
+</body>
+</html>
