@@ -7,6 +7,7 @@ A mobile-friendly web app for tracking fitness, health, expenses, finances, and 
 - Your data lives in a normal **Google Sheet** (one tab per category).
 - A **Google Apps Script** attached to that Sheet is deployed as a "Web App," giving you a private URL that reads/writes rows as JSON.
 - The **web app** (`docs/` folder) is a single-page app that calls that URL. It's mobile-first and can be "added to home screen" like a native app.
+- A **Calendar** tab shows a month grid with a colored dot per category on days you've logged something — tap any day (including past months) to see or add entries for it, with the date pre-filled so you can backfill missed days.
 - Live at: **https://priyadhanu14.github.io/life-tracker/**
 
 ## 1. Create the Google Sheet

@@ -5,7 +5,12 @@ let CONFIG = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
 const DATA = { Fitness: [], Health: [], Expenses: [], Finances: [], Time: [] };
 let currentTab = 'dashboard';
 let moneyView = 'expenses';
+let selectedDate = new Date().toISOString().slice(0, 10); // prefills entry-form dates; set by the Calendar tab for backfilling past days
+let calendarCursor = { year: new Date().getFullYear(), month: new Date().getMonth() };
 const charts = {}; // canvasId -> Chart instance
+
+const SHEET_COLORS = { Fitness: '#60a5fa', Health: '#f472b6', Expenses: '#34d399', Finances: '#fbbf24', Time: '#a78bfa' };
+const SHEET_TABS = { Fitness: 'fitness', Health: 'health', Expenses: 'money', Finances: 'money', Time: 'time' };
 
 const FITNESS_TYPES = ['Cardio', 'Strength', 'Yoga', 'Sports', 'Walking', 'Other'];
 const MOODS = ['😀 Great', '🙂 Good', '😐 Okay', '🙁 Low', '😞 Bad'];
@@ -76,14 +81,28 @@ document.getElementById('cfg-save').onclick = () => {
 };
 
 /* ---------- Nav ---------- */
+function setActiveNav(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+}
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    selectedDate = todayStr();
+    if (btn.dataset.tab === 'calendar') calendarCursor = { year: new Date().getFullYear(), month: new Date().getMonth() };
+    setActiveNav(btn.dataset.tab);
     currentTab = btn.dataset.tab;
     render();
   };
 });
+// Jumps to a category tab with its form pre-filled for a specific day — used by the Calendar tab to backfill past dates.
+function openTabForSheet(sheet, date) {
+  selectedDate = date;
+  const tab = SHEET_TABS[sheet];
+  if (sheet === 'Expenses') moneyView = 'expenses';
+  if (sheet === 'Finances') moneyView = 'finances';
+  setActiveNav(tab);
+  currentTab = tab;
+  render();
+}
 
 /* ---------- Utils ---------- */
 // Date-only strings ("YYYY-MM-DD") from <input type=date> or the Sheet must be
@@ -97,6 +116,10 @@ function parseDate(d) {
   return new Date(d);
 }
 const todayStr = () => new Date().toISOString().slice(0, 10);
+const dateKey = (d) => {
+  const dt = parseDate(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+};
 const fmtDate = (d) => parseDate(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const num = (v) => Number(v) || 0;
 const sameMonth = (d) => {
@@ -126,7 +149,7 @@ async function refresh() {
 
 function render() {
   const content = document.getElementById('content');
-  const title = { dashboard: 'Dashboard', fitness: 'Fitness', health: 'Health', money: 'Money', time: 'Time' }[currentTab];
+  const title = { dashboard: 'Dashboard', fitness: 'Fitness', health: 'Health', money: 'Money', time: 'Time', calendar: 'Calendar' }[currentTab];
   document.getElementById('header-title').textContent = title;
 
   if (!isConfigured()) {
@@ -138,7 +161,7 @@ function render() {
     return;
   }
 
-  const renderers = { dashboard: renderDashboard, fitness: renderFitness, health: renderHealth, money: renderMoney, time: renderTime };
+  const renderers = { dashboard: renderDashboard, fitness: renderFitness, health: renderHealth, money: renderMoney, time: renderTime, calendar: renderCalendar };
   renderers[currentTab]();
 }
 
@@ -188,7 +211,7 @@ function bindForm(formId, sheet, mapFn) {
       toast('Saved');
       form.reset();
       const dateInput = form.querySelector('input[type="date"]');
-      if (dateInput) dateInput.value = todayStr();
+      if (dateInput) dateInput.value = selectedDate;
       refresh();
     } catch (err) {
       toast('Save failed: ' + err.message);
@@ -272,7 +295,7 @@ function renderFitness() {
     <div class="card">
       <h3>Log a workout</h3>
       <form id="form-fitness" class="entry-form">
-        <label>Date <input type="date" name="Date" value="${todayStr()}" required></label>
+        <label>Date <input type="date" name="Date" value="${selectedDate}" required></label>
         <label>Type
           <select name="Type">${FITNESS_TYPES.map(t => `<option>${t}</option>`).join('')}</select>
         </label>
@@ -321,7 +344,7 @@ function renderHealth() {
     <div class="card">
       <h3>Log health</h3>
       <form id="form-health" class="entry-form">
-        <label>Date <input type="date" name="Date" value="${todayStr()}" required></label>
+        <label>Date <input type="date" name="Date" value="${selectedDate}" required></label>
         <label>Weight (kg) <input type="number" step="0.1" name="Weight"></label>
         <label>Sleep (hours) <input type="number" step="0.1" name="Sleep"></label>
         <label>Mood
@@ -389,7 +412,7 @@ function renderExpenses() {
     <div class="card">
       <h3>Log an expense</h3>
       <form id="form-expense" class="entry-form">
-        <label>Date <input type="date" name="Date" value="${todayStr()}" required></label>
+        <label>Date <input type="date" name="Date" value="${selectedDate}" required></label>
         <label>Category
           <select name="Category">${EXPENSE_CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select>
         </label>
@@ -443,7 +466,7 @@ function renderFinances() {
     <div class="card">
       <h3>Log income / savings / investment</h3>
       <form id="form-finance" class="entry-form">
-        <label>Date <input type="date" name="Date" value="${todayStr()}" required></label>
+        <label>Date <input type="date" name="Date" value="${selectedDate}" required></label>
         <label>Type
           <select name="Type">${FINANCE_TYPES.map(t => `<option>${t}</option>`).join('')}</select>
         </label>
@@ -485,7 +508,7 @@ function renderTime() {
     <div class="card">
       <h3>Log time</h3>
       <form id="form-time" class="entry-form">
-        <label>Date <input type="date" name="Date" value="${todayStr()}" required></label>
+        <label>Date <input type="date" name="Date" value="${selectedDate}" required></label>
         <label>Activity <input type="text" name="Activity" required></label>
         <label>Category
           <select name="Category">${TIME_CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select>
@@ -525,6 +548,106 @@ function renderTime() {
   } else {
     ctx.replaceWith(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No time logged today' }));
   }
+}
+
+/* ---------- Calendar ---------- */
+function buildMonthEntries(year, month) {
+  const map = {};
+  Object.keys(SHEET_COLORS).forEach(sheet => {
+    (DATA[sheet] || []).forEach(r => {
+      const dt = parseDate(r.Date);
+      if (dt.getFullYear() === year && dt.getMonth() === month) {
+        const key = dateKey(r.Date);
+        (map[key] ??= {});
+        (map[key][sheet] ??= []).push(r);
+      }
+    });
+  });
+  return map;
+}
+
+function sheetLine(sheet, r) {
+  switch (sheet) {
+    case 'Fitness': return { main: `${r.Type} — ${r.Duration} min`, sub: r.Notes || '', amount: r.Calories ? `${r.Calories} cal` : undefined };
+    case 'Health': return { main: `${r.Mood || ''} ${r.Weight ? r.Weight + 'kg' : ''}`.trim() || 'Entry', sub: `Sleep ${r.Sleep ?? '—'}h · Water ${r.Water ?? '—'}L` };
+    case 'Expenses': return { main: `${r.Category}${r.Description ? ' — ' + r.Description : ''}`, sub: r.Method || '', amount: num(r.Amount).toFixed(2) };
+    case 'Finances': return { main: r.Type, sub: r.Notes || '', amount: num(r.Amount).toFixed(2) };
+    case 'Time': return { main: `${r.Activity} (${r.Category})`, sub: r.Notes || '', amount: `${r.Hours}h` };
+  }
+}
+
+function renderCalendar() {
+  const content = document.getElementById('content');
+  const { year, month } = calendarCursor;
+  const monthMap = buildMonthEntries(year, month);
+  const monthLabel = new Date(year, month, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayKey = todayStr();
+  const selKey = selectedDate;
+
+  let cells = '';
+  for (let i = 0; i < firstWeekday; i++) cells += `<div class="calendar-day empty"></div>`;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dots = Object.keys(monthMap[key] || {}).map(s => `<span class="dot" style="background:${SHEET_COLORS[s]}"></span>`).join('');
+    const classes = ['calendar-day'];
+    if (key === todayKey) classes.push('today');
+    if (key === selKey) classes.push('selected');
+    cells += `<button class="${classes.join(' ')}" data-date="${key}">${day}<span class="dots">${dots}</span></button>`;
+  }
+
+  const dayEntries = monthMap[selKey] || {};
+  const sheetsForDay = Object.keys(SHEET_COLORS).filter(s => dayEntries[s]);
+
+  content.innerHTML = `
+    <div class="card">
+      <div class="calendar-header">
+        <button id="cal-prev" aria-label="Previous month">‹</button>
+        <h3>${monthLabel}</h3>
+        <button id="cal-next" aria-label="Next month">›</button>
+      </div>
+      <div class="weekday-row">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<div>${d}</div>`).join('')}</div>
+      <div class="calendar-grid">${cells}</div>
+    </div>
+    <div class="card">
+      <div class="day-detail-header">
+        <h2>${parseDate(selKey).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</h2>
+      </div>
+      ${sheetsForDay.length ? sheetsForDay.map(sheet => `
+        <div class="category-block">
+          <div class="category-block-header">
+            <div class="label"><span class="swatch" style="background:${SHEET_COLORS[sheet]}"></span>${sheet}</div>
+            <button class="add-link" data-jump-sheet="${sheet}">+ Add</button>
+          </div>
+          ${entryListHtml(dayEntries[sheet].map(r => ({ ...r, _sheet: sheet })), r => sheetLine(sheet, r))}
+        </div>
+      `).join('') : `
+        <p class="empty">Nothing logged this day</p>
+        <div class="stat-grid">
+          ${Object.keys(SHEET_COLORS).map(sheet => `<button class="btn secondary" data-jump-sheet="${sheet}">+ ${sheet}</button>`).join('')}
+        </div>
+      `}
+    </div>
+  `;
+
+  document.getElementById('cal-prev').onclick = () => {
+    calendarCursor.month--;
+    if (calendarCursor.month < 0) { calendarCursor.month = 11; calendarCursor.year--; }
+    renderCalendar();
+  };
+  document.getElementById('cal-next').onclick = () => {
+    calendarCursor.month++;
+    if (calendarCursor.month > 11) { calendarCursor.month = 0; calendarCursor.year++; }
+    renderCalendar();
+  };
+  document.querySelectorAll('.calendar-day:not(.empty)').forEach(btn => {
+    btn.onclick = () => { selectedDate = btn.dataset.date; renderCalendar(); };
+  });
+  document.querySelectorAll('[data-jump-sheet]').forEach(btn => {
+    btn.onclick = () => openTabForSheet(btn.dataset.jumpSheet, selKey);
+  });
+  bindDeleteButtons();
 }
 
 /* ---------- Init ---------- */
