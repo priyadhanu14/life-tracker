@@ -6,7 +6,8 @@ A mobile-friendly web app for tracking fitness, health, expenses, finances, and 
 
 - Your data lives in a normal **Google Sheet** (one tab per category).
 - A **Google Apps Script** attached to that Sheet is deployed as a "Web App," giving you a private URL that reads/writes rows as JSON.
-- The **web app** (`webapp/` folder) is a single-page app that calls that URL. It's mobile-first and can be "added to home screen" like a native app.
+- The **web app** (`docs/` folder) is a single-page app that calls that URL. It's mobile-first and can be "added to home screen" like a native app.
+- Live at: **https://priyadhanu14.github.io/life-tracker/**
 
 ## 1. Create the Google Sheet
 
@@ -34,16 +35,12 @@ A mobile-friendly web app for tracking fitness, health, expenses, finances, and 
 
 ## 4. Run the front-end
 
-The `webapp/` folder is plain HTML/CSS/JS — no build step.
+The `docs/` folder is plain HTML/CSS/JS — no build step. It's already hosted via GitHub Pages at **https://priyadhanu14.github.io/life-tracker/** (Settings → Pages → deploy from branch `master`, folder `/docs`). Open that on your phone and use "Add to Home Screen" from the browser menu so it behaves like an app icon.
 
-**Option A — just open it locally** (fastest, good for a quick try):
-Double-click `webapp/index.html`, or on Windows run:
+You can also just open it locally for a quick try — double-click `docs/index.html`, or on Windows run:
 ```
-start webapp/index.html
+start docs/index.html
 ```
-
-**Option B — host it so you can use it from your phone (recommended):**
-Push this folder to a GitHub repo and enable **GitHub Pages** (Settings → Pages → deploy from branch, folder `/webapp` or root). You'll get a URL like `https://yourname.github.io/life-tracker/`. Open that on your phone and use "Add to Home Screen" from the browser menu so it behaves like an app icon.
 
 ## 5. Connect the app to your Sheet
 
