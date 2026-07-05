@@ -244,3 +244,11 @@ input:focus, select:focus, textarea:focus { outline: 2px solid #60a5fa; }
   padding: 4px 10px;
   cursor: pointer;
 }
+
+.summary-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.summary-table th { text-align: right; color: #7b8794; font-weight: 500; padding: 6px 4px; border-bottom: 1px solid #1e293b; }
+.summary-table th:first-child, .summary-table td:first-child { text-align: left; }
+.summary-table td { text-align: right; padding: 7px 4px; border-bottom: 1px solid #1e293b; }
+.summary-table tr:last-child td { border-bottom: none; }
+.summary-table .positive { color: #34d399; }
+.summary-table .negative { color: #f87171; }

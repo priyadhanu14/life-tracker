@@ -220,6 +220,17 @@ function bindForm(formId, sheet, mapFn) {
 }
 
 /* ---------- Dashboard ---------- */
+function buildMonthlySummary() {
+  const expenses = (DATA.Expenses || []).filter(r => r.Date);
+  const income = (DATA.Finances || []).filter(r => r.Date && r.Type === 'Income');
+  const months = new Set([...expenses, ...income].map(r => dateKey(r.Date).slice(0, 7)));
+  return Array.from(months).sort().map(m => {
+    const exp = expenses.filter(r => dateKey(r.Date).slice(0, 7) === m).reduce((s, r) => s + num(r.Amount), 0);
+    const inc = income.filter(r => dateKey(r.Date).slice(0, 7) === m).reduce((s, r) => s + num(r.Amount), 0);
+    return { label: parseDate(m + '-01').toLocaleDateString(undefined, { month: 'short', year: 'numeric' }), expenses: exp, income: inc, net: inc - exp };
+  });
+}
+
 function renderDashboard() {
   const content = document.getElementById('content');
   const fitness = DATA.Fitness || [], health = DATA.Health || [], expenses = DATA.Expenses || [], finances = DATA.Finances || [], time = DATA.Time || [];
@@ -251,6 +262,22 @@ function renderDashboard() {
         <div class="stat"><div class="value">${spentThisMonth.toFixed(0)}</div><div class="label">Spent this month</div></div>
         <div class="stat"><div class="value">${incomeThisMonth.toFixed(0)}</div><div class="label">Income this month</div></div>
       </div>
+    </div>
+    <div class="card">
+      <h2>Monthly summary</h2>
+      ${(() => {
+        const rows = buildMonthlySummary();
+        if (!rows.length) return '<div class="empty">No expenses or income logged yet</div>';
+        return `<table class="summary-table">
+          <thead><tr><th>Month</th><th>Expenses</th><th>Income</th><th>Net</th></tr></thead>
+          <tbody>${rows.map(r => `<tr>
+            <td>${r.label}</td>
+            <td>${r.expenses.toFixed(0)}</td>
+            <td>${r.income.toFixed(0)}</td>
+            <td class="${r.net >= 0 ? 'positive' : 'negative'}">${r.net >= 0 ? '+' : ''}${r.net.toFixed(0)}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+      })()}
     </div>
     <div class="card">
       <h2>Today's time</h2>
