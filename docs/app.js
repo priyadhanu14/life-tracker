@@ -14,7 +14,7 @@ const SHEET_TABS = { Fitness: 'fitness', Health: 'health', Expenses: 'money', Fi
 
 const FITNESS_TYPES = ['Cardio', 'Strength', 'Yoga', 'Sports', 'Walking', 'Other'];
 const MOODS = ['😀 Great', '🙂 Good', '😐 Okay', '🙁 Low', '😞 Bad'];
-const EXPENSE_CATEGORIES = ['Food', 'Transport', 'Housing', 'Utilities', 'Shopping', 'Entertainment', 'Health', 'Other'];
+const EXPENSE_CATEGORIES = ['Groceries', 'Dining Out', 'Transport', 'Housing', 'Utilities', 'Shopping', 'Entertainment', 'Health', 'Other'];
 const PAYMENT_METHODS = ['Cash', 'Card', 'UPI/Bank Transfer', 'Other'];
 const FINANCE_TYPES = ['Income', 'Savings', 'Investment', 'Debt Payment'];
 const TIME_CATEGORIES = ['Work', 'Study', 'Exercise', 'Sleep', 'Leisure', 'Chores', 'Social', 'Other'];
