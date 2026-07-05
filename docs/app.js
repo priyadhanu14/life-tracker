@@ -283,8 +283,18 @@ function renderDashboard() {
 }
 
 function palette(n) {
-  const base = ['#60a5fa', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#fb923c', '#22d3ee', '#f87171'];
+  const base = ['#60a5fa', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#fb923c', '#22d3ee', '#f87171', '#94a3b8'];
   return Array.from({ length: n }, (_, i) => base[i % base.length]);
+}
+
+// Entries logged before the Food category was split into Groceries/Dining Out
+// still say "Food" in the sheet. Bucket them by description so charts show
+// the real split without having to rewrite historical rows.
+function effectiveCategory(r) {
+  if (r.Category !== 'Food') return r.Category;
+  const d = (r.Description || '').toLowerCase();
+  if (/walmart|costco|safeway|trader joe|whole foods|grocery|kroger|target/.test(d)) return 'Groceries';
+  return 'Dining Out';
 }
 
 /* ---------- Fitness ---------- */
@@ -406,7 +416,19 @@ function renderExpenses() {
   const rows = sortByDateDesc(DATA.Expenses || []);
   const monthTotal = rows.filter(r => sameMonth(r.Date)).reduce((s, r) => s + num(r.Amount), 0);
   const byCat = {};
-  rows.filter(r => sameMonth(r.Date)).forEach(r => { byCat[r.Category] = (byCat[r.Category] || 0) + num(r.Amount); });
+  rows.filter(r => sameMonth(r.Date)).forEach(r => { const c = effectiveCategory(r); byCat[c] = (byCat[c] || 0) + num(r.Amount); });
+
+  const catColor = {};
+  EXPENSE_CATEGORIES.forEach((c, i) => { catColor[c] = palette(EXPENSE_CATEGORIES.length)[i]; });
+  const monthlyMap = {}; // 'YYYY-MM' -> { category: total }
+  rows.forEach(r => {
+    const m = dateKey(r.Date).slice(0, 7);
+    const c = effectiveCategory(r);
+    (monthlyMap[m] ??= {});
+    monthlyMap[m][c] = (monthlyMap[m][c] || 0) + num(r.Amount);
+  });
+  const months = Object.keys(monthlyMap).sort();
+  const catsUsed = EXPENSE_CATEGORIES.filter(c => months.some(m => monthlyMap[m][c]));
 
   document.getElementById('money-content').innerHTML = `
     <div class="card">
@@ -429,6 +451,13 @@ function renderExpenses() {
       <div class="chart-wrap"><canvas id="chart-expense-cat"></canvas></div>
     </div>
     <div class="card">
+      <h2>Monthly trend</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+        ${catsUsed.map(c => `<span style="display:flex;align-items:center;gap:4px;font-size:12px;color:#9fb0c9;"><span style="width:8px;height:8px;border-radius:2px;background:${catColor[c]}"></span>${c}</span>`).join('')}
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chart-expense-trend"></canvas></div>
+    </div>
+    <div class="card">
       <h2>History</h2>
       ${entryListHtml(rows.map(r => ({ ...r, _sheet: 'Expenses' })), r => ({
         main: `${r.Category}${r.Description ? ' — ' + r.Description : ''}`,
@@ -448,11 +477,37 @@ function renderExpenses() {
   if (labels.length) {
     charts['chart-expense-cat'] = new Chart(ctx, {
       type: 'doughnut',
-      data: { labels, datasets: [{ data: labels.map(l => byCat[l]), backgroundColor: palette(labels.length) }] },
+      data: { labels, datasets: [{ data: labels.map(l => byCat[l]), backgroundColor: labels.map(l => catColor[l] || '#94a3b8') }] },
       options: { plugins: { legend: { labels: { color: '#cbd5e1' } } } }
     });
   } else {
     ctx.replaceWith(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No expenses this month' }));
+  }
+
+  destroyChart('chart-expense-trend');
+  const trendCtx = document.getElementById('chart-expense-trend');
+  if (months.length) {
+    charts['chart-expense-trend'] = new Chart(trendCtx, {
+      type: 'bar',
+      data: {
+        labels: months.map(m => parseDate(m + '-01').toLocaleDateString(undefined, { month: 'short', year: '2-digit' })),
+        datasets: catsUsed.map(c => ({
+          label: c,
+          data: months.map(m => Math.round((monthlyMap[m][c] || 0) * 100) / 100),
+          backgroundColor: catColor[c]
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { stacked: true, ticks: { color: '#9fb0c9' } },
+          y: { stacked: true, ticks: { color: '#9fb0c9' } }
+        }
+      }
+    });
+  } else {
+    trendCtx.replaceWith(Object.assign(document.createElement('div'), { className: 'empty', textContent: 'No expenses logged yet' }));
   }
 }
 
